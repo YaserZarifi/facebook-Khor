@@ -59,3 +59,37 @@ export async function uploadReel(env, videoBytes, { description }) {
   await finishUpload(env, videoId, { description });
   return videoId;
 }
+
+// Facebook's Graph API returns errors as JSON with an OAuthException code —
+// 4, 17, and 32 are Facebook's general/page-level rate-limit codes, 613 is
+// the custom rate-limit code used by several write endpoints including
+// video_reels. This can't be verified against a live call from here (no
+// network access to graph.facebook.com in this environment) — treat this
+// as a best-effort matcher and adjust the pattern if you see a real rate
+// -limit error slip through uncaught, or a normal error get mis-flagged.
+export function isRateLimitError(message) {
+  return /rate limit|too many requests|request limit reached|"code"\s*:\s*(4|17|32|613)\b/i.test(message || "");
+}
+
+// Best-effort view count per posted Reel via the video_insights edge. Not
+// verified against a live Graph API response — Facebook's exact metric name
+// and response shape for Reels insights has shifted across API versions, so
+// treat a missing/undefined result as "couldn't fetch," not "zero views."
+export async function getVideoViews(env, videoIds) {
+  if (!videoIds || videoIds.length === 0) return {};
+  const map = {};
+  await Promise.all(
+    videoIds.map(async (id) => {
+      try {
+        const url = `${GRAPH_BASE}/${id}/video_insights?metric=post_video_views&access_token=${env.FB_PAGE_ACCESS_TOKEN}`;
+        const res = await fetch(url);
+        const data = await res.json();
+        const value = data?.data?.[0]?.values?.[0]?.value;
+        if (typeof value === "number") map[id] = value;
+      } catch (err) {
+        console.error("getVideoViews failed for", id, err.message);
+      }
+    })
+  );
+  return map;
+}

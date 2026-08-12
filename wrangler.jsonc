@@ -21,7 +21,12 @@
 		"crons": ["*/15 * * * *"]
 	},
 	"vars": {
-		"AUTHORIZED_USER_IDS": "7993963557,6880833368"
+		"AUTHORIZED_USER_IDS": "7993963557,6880833368",
+		"MAX_UPLOADS_PER_DAY": "5",
+		"MIN_HOURS_BETWEEN_UPLOADS": "3",
+		"DISPLAY_TIMEZONE": "Asia/Kabul",
+		"POSTING_WINDOW_START_HOUR": "8",
+		"POSTING_WINDOW_END_HOUR": "1"
 	},
     "ai": {
 		"binding": "AI"
