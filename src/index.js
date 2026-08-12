@@ -1,4 +1,4 @@
-import { tgSend, tgEditMessage, tgAnswerCallback, tgGetFileUrl } from "./telegram.js";
+import { tgSend, tgEditMessage, tgAnswerCallback, tgGetFileUrl, tgBroadcast } from "./telegram.js";
 import { generateCaption } from "./ai.js";
 import { uploadReel, isRateLimitError, getVideoViews } from "./facebook.js";
 
@@ -652,18 +652,18 @@ async function processQueueTick(env) {
       await env.STATE.delete("queuePaused");
       await env.STATE.delete("lastPausedReminderAt");
       await logEvent(env, "QUEUE_RESUMED", "Queue auto-resumed after 24h", { via: "automatic" });
-      const notifyId = getAuthorizedUserIds(env)[0];
-      if (notifyId) {
-        await tgSend(env, notifyId, "▶️ Queue auto-resumed — it's been 24h since your last post, so the rate limit should have cleared. I'll try the next video on the next check.");
+      const notifyIds = getAuthorizedUserIds(env);
+      if (notifyIds.length) {
+        await tgBroadcast(env, notifyIds, "▶️ Queue auto-resumed — it's been 24h since your last post, so the rate limit should have cleared. I'll try the next video on the next check.");
       }
     } else {
       const lastReminderAt = parseInt((await env.STATE.get("lastPausedReminderAt")) || "0", 10);
       const hoursSinceReminder = lastReminderAt ? (Date.now() - lastReminderAt) / (1000 * 60 * 60) : Infinity;
       if (hoursSinceReminder >= 6) {
-        const notifyId = getAuthorizedUserIds(env)[0];
-        if (notifyId) {
+        const notifyIds = getAuthorizedUserIds(env);
+        if (notifyIds.length) {
           const resumeInHrs = lastPostedAt ? Math.max(0, 24 - hoursSince).toFixed(1) : "?";
-          await tgSend(env, notifyId, `⏸️ Reminder: queue is still paused (${paused}). Auto-resumes in ~${resumeInHrs}h, or send /resumequeue now.`);
+          await tgBroadcast(env, notifyIds, `⏸️ Reminder: queue is still paused (${paused}). Auto-resumes in ~${resumeInHrs}h, or send /resumequeue now.`);
         }
         await env.STATE.put("lastPausedReminderAt", Date.now().toString());
       }
@@ -743,9 +743,9 @@ async function processQueueTick(env) {
       await env.STATE.put("queuePaused", "Facebook rate limit reached");
       await logEvent(env, "RATE_LIMITED", "Facebook rate limit reached", { vid: item.vid });
       await logEvent(env, "QUEUE_PAUSED", "Queue paused", { reason: "Facebook rate limit reached" });
-      await tgSend(
+      await tgBroadcast(
         env,
-        item.chatId,
+        getAuthorizedUserIds(env),
         `🚫 Facebook rate limit reached. The queue is now PAUSED.\n\nIt'll auto-resume 24h after your last successful post, or send /resumequeue to override manually.\n\nRun /history ${item.vid} for this video's timeline.`
       );
       return;

@@ -47,6 +47,14 @@ export async function tgGetFileUrl(env, fileId) {
   return `https://api.telegram.org/file/bot${env.TELEGRAM_BOT_TOKEN}/${data.result.file_path}`;
 }
 
+export async function tgBroadcast(env, userIds, text, replyMarkup) {
+  const results = [];
+  for (const id of userIds) {
+    results.push(await tgSend(env, id, text, replyMarkup));
+  }
+  return results;
+}
+
 export async function tgSetCommands(env, commands) {
   const res = await fetch(`${TG_API(env.TELEGRAM_BOT_TOKEN)}/setMyCommands`, {
     method: "POST",
