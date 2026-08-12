@@ -110,7 +110,7 @@ function slotTimeFor(schedule, dayMidnightMs, windowIndex) {
   return Math.max(startMs, snapped);
 }
 
-function generateAutoSlots(env, startMs, count, blockedTimes = []) {
+export function generateAutoSlots(env, startMs, count, blockedTimes = []) {
   const timeZone = env.DISPLAY_TIMEZONE || "UTC";
   const schedule = getSchedule(env);
   const fmt = new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" });
@@ -144,7 +144,7 @@ function generateAutoSlots(env, startMs, count, blockedTimes = []) {
 // Assign each queued item a persisted scheduledAt: manual items keep theirs,
 // auto items (in queue order) take the earliest free slots from now. Then
 // sort so array order matches time order — the cron always posts queue[0].
-function repackQueue(env, queue) {
+export function repackQueue(env, queue) {
   const now = Date.now();
   const isManual = (it) => it.manual && it.scheduledAt;
   const blocked = queue.filter(isManual).map((it) => it.scheduledAt);
