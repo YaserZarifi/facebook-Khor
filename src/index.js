@@ -1,4 +1,4 @@
-import { tgSend, tgEditMessage, tgAnswerCallback, tgGetFileUrl, tgBroadcast } from "./telegram.js";
+import { tgSend, tgEditMessage, tgAnswerCallback, tgGetFileUrl, tgBroadcast, tgSetCommands } from "./telegram.js";
 import { generateCaption } from "./ai.js";
 import { uploadReel, isRateLimitError, getVideoViews } from "./facebook.js";
 
@@ -780,7 +780,24 @@ async function processQueueTick(env) {
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
-    if (request.method === "GET") return new Response("ok");
+    if (request.method === "GET") {
+      if (url.searchParams.has("setcommands")) {
+        const result = await tgSetCommands(env, [
+          { command: "start", description: "Check the bot is alive" },
+          { command: "ping", description: "Check the bot is alive" },
+          { command: "status", description: "Queue length, last posted time, paused state" },
+          { command: "queue", description: "List queued items" },
+          { command: "remove", description: "Remove an item from the queue: /remove [position]" },
+          { command: "postnow", description: "Post an item immediately: /postnow [position]" },
+          { command: "resumequeue", description: "Manually resume a paused queue" },
+          { command: "logs", description: "Show recent event log" },
+          { command: "history", description: "Show a video's full timeline: /history [vid]" },
+          { command: "posted", description: "Show recently posted videos" },
+        ]);
+        return new Response(JSON.stringify(result), { headers: { "Content-Type": "application/json" } });
+      }
+      return new Response("ok");
+    }
     if (url.pathname !== "/webhook") return new Response("not found", { status: 404 });
 
     if (request.headers.get("X-Telegram-Bot-Api-Secret-Token") !== env.TELEGRAM_SECRET) {
